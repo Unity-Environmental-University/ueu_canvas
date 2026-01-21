@@ -8,7 +8,7 @@ import {IDiscussionData, SaveDiscussionData} from "@canvas/content/types";
 
 export type GetDiscussionOptions = Record<string, any>;
 export const discussionUrlFuncs = contentUrlFuncs('discussion_topics');
-const DiscussionKind: ContentKind<
+export const DiscussionKind: ContentKind<
     IDiscussionData,
     GetDiscussionOptions,
     SaveDiscussionData
