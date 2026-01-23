@@ -1,6 +1,6 @@
 import {CanvasData} from "@/canvasDataDefs";
 
-export default {
+export const mockCiteAsResponse = {
   "citations": [
     {
       "citation": "(n.d.). Citation - The very hungry caterpillar - UW-Madison Libraries. Retrieved from https://search.library.wisc.edu/catalog/9910611455202121/cite",
@@ -318,3 +318,5 @@ export default {
   ],
   "url": "the hungry hungry caterpillar"
 };
+
+export default mockCiteAsResponse;

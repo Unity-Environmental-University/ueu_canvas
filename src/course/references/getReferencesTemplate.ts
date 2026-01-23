@@ -12,11 +12,11 @@ export enum ReferenceExportType {
     page,
 }
 
-function getReferenceTemplate() : Promise<string|undefined>;
-function getReferenceTemplate(type: ReferenceExportType.string) : Promise<string|undefined>;
-function getReferenceTemplate(type: ReferenceExportType.pageData) : Promise<IPageData|undefined>;
-async function getReferenceTemplate(type: ReferenceExportType.page) : Promise<Page|undefined>;
-async function getReferenceTemplate(type?: NonNullable<unknown>) {
+export function getReferenceTemplate() : Promise<string|undefined>;
+export function getReferenceTemplate(type: ReferenceExportType.string) : Promise<string|undefined>;
+export function getReferenceTemplate(type: ReferenceExportType.pageData) : Promise<IPageData|undefined>;
+export async function getReferenceTemplate(type: ReferenceExportType.page) : Promise<Page|undefined>;
+export async function getReferenceTemplate(type?: NonNullable<unknown>) {
     const pageData = await PageKind.getByString(DEV_TEMPLATE_COURSE_ID, REFERENCES_PAGE_URL_NAME)
 
     if(typeof type === 'undefined' || type === ReferenceExportType.string) return 'body' in pageData ? pageData.body : pageData.message;

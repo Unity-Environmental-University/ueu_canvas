@@ -16,7 +16,7 @@ export type SavePageOptions = Record<string, any>;
 
 const getStringApiUrl = courseContentUrlFunc<string>(`/api/v1/courses/{courseId}/pages/{contentId}`)
 
-const PageKind: Required<
+export const PageKind: Required<
     ContentKind<IPageData, GetPageOptions, SavePageOptions>
 >= {
     ...PageUrlFuncs,

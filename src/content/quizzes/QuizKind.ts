@@ -6,7 +6,7 @@ import {GetQuizOptions, IQuizData, SaveQuizOptions} from "@/content/quizzes/type
 import {ContentKind, contentUrlFuncs, putContentFunc} from "@/content/ContentKind";
 
 export const quizUrlFuncs = contentUrlFuncs('quizzes');
-const QuizKind: ContentKind<IQuizData, GetQuizOptions, SaveQuizOptions> = {
+export const QuizKind: ContentKind<IQuizData, GetQuizOptions, SaveQuizOptions> = {
     getId: (data) => data.id,
     getName: (data) => data.title,
     dataIsThisKind: (data): data is IQuizData => 'quiz_type' in data,

@@ -1,2 +1,2 @@
-const openThisContentInTarget = jest.fn();
+export const openThisContentInTarget = jest.fn();
 export default openThisContentInTarget;

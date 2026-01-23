@@ -1,6 +1,6 @@
 import {ILatePolicyData} from "../../canvasDataDefs";
 
-const latePolicyDummyData: ILatePolicyData = {
+export const latePolicyDummyData: ILatePolicyData = {
     id: 1,
     missing_submission_deduction: 20.0,
     late_submission_minimum_percent_enabled: true,

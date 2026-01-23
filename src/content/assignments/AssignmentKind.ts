@@ -6,7 +6,7 @@ import {ContentKind, contentUrlFuncs, putContentFunc} from "@/content/ContentKin
 import {IAssignmentData, UpdateAssignmentDataOptions} from "@canvas/content/types";
 
 export const assignmentUrlFuncs = contentUrlFuncs('assignments');
-const AssignmentKind: ContentKind<
+export const AssignmentKind: ContentKind<
     IAssignmentData,
     CanvasData,
     UpdateAssignmentDataOptions

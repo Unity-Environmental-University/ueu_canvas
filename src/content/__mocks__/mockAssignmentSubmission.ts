@@ -1,6 +1,6 @@
 import {IAssignmentSubmission} from "@canvas/content/types";
 
-const mockSubmission: IAssignmentSubmission = {
+export const mockSubmission: IAssignmentSubmission = {
   assignment_id: 23,
   assignment: null,
   course: null,

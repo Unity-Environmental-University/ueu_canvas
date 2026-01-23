@@ -1,7 +1,7 @@
 import {fetchJson} from "@canvas/fetch/fetchJson";
 import {formDataify} from "@canvas/canvasUtils";
 
-export default async function(courseId:number, groupId:number, moveAssignmentsTo?: number) {
+export const deleteAssignmentGroup = async function(courseId:number, groupId:number, moveAssignmentsTo?: number) {
     const data = moveAssignmentsTo? { move_assignments_to: moveAssignmentsTo} : {};
 
     const result = await fetchJson(`/api/v1/courses/${courseId}/assignment_groups/${groupId}`, {
@@ -10,6 +10,6 @@ export default async function(courseId:number, groupId:number, moveAssignmentsTo
             body: formDataify(data),
         }
     })
-
-
 }
+
+export default deleteAssignmentGroup;

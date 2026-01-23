@@ -7,7 +7,7 @@ function getIdOrCourse(courseOrId: number | Course) {
     return courseOrId;
 }
 
-export default async function openThisContentInTarget(
+export const openThisContentInTarget = async function(
     currentCourse: Course | number,
     target: Course | Course[] | number | number[]
 ) {
@@ -35,4 +35,6 @@ export default async function openThisContentInTarget(
         }
     }
 }
+
+export default openThisContentInTarget;
 
