@@ -1,10 +1,14 @@
 {
-  "name": "ueu_canvas",
-  "version": "0.0.2",
+  "name": "@ueu/ueu-canvas",
+  "version": "0.0.3",
   "main": "dist/index.js",
+  "files": ["dist"],
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "ts-jest",
