@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test": "ts-jest",
-    "build": "webpack && tsc --emitDeclarationOnly",
+    "build": "tsc && dts-bundle-generator -o dist/index.d.ts src/index.ts",
     "build:webpack": "webpack",
     "build:types": "tsc --emitDeclarationOnly"
   },
@@ -30,6 +30,7 @@
     "@types/webpack": "^5.28.5",
     "copy-webpack-plugin": "^12.0.2",
     "dotenv": "^16.4.7",
+    "dts-bundle-generator": "^9.5.1",
     "html-webpack-plugin": "^5.6.3",
     "jest": "^29.7.0",
     "jest-dom": "^4.0.0",
