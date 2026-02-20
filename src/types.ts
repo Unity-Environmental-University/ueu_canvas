@@ -44,6 +44,7 @@ export interface ICourseData extends CanvasData {
     course_format: string,
     access_restricted_by_date?: boolean
     time_zone: string,
+    tabs?: ITabData[],
     blueprint: boolean,
     blueprint_restrictions: IBlueprintContentRestrictions,
     blueprint_restrictions_by_object_type: {

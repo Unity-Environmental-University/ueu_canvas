@@ -58,7 +58,7 @@ export class Course extends BaseCanvasObject<ICourseData> implements IContentHav
     ICourseCodeHaver,
     IModulesHaver {
     static nameProperty = 'name';
-    private _modules: IModuleData[] | undefined = undefined;
+    protected _modules: IModuleData[] | undefined = undefined;
     private modulesByWeekNumber: Record<string | number, IModuleData> | undefined = undefined;
     private static contentClasses: (typeof BaseContentItem)[] = [Assignment, Discussion, Quiz, Page];
 
@@ -195,8 +195,37 @@ export class Course extends BaseCanvasObject<ICourseData> implements IContentHav
         return modules;
     }
 
+    async updateModules(config?: ICanvasCallConfig): Promise<IModuleData[]> {
+        this._modules = undefined;
+        return this.getModules(config);
+    }
+
     async getStartDateFromModules() {
         return getModuleUnlockStartDate(await this.getModules());
+    }
+
+    public isUndergrad() {
+        if (this.courseCode) {
+            const match = this.courseCode.match(/\d{3,4}/);
+            if (match) return parseInt(match[0], 10) < 500;
+        }
+        return false;
+    }
+
+    public isGrad() {
+        if (this.courseCode) {
+            const match = this.courseCode.match(/\d{3,4}/);
+            if (match) return parseInt(match[0], 10) >= 500 && parseInt(match[0], 10) < 1000;
+        }
+        return false;
+    }
+
+    public isCareerInstitute() {
+        if (this.courseCode) {
+            const match = this.courseCode.match(/\d{4}/);
+            if (match) return true;
+        }
+        return false;
     }
 
     async getInstructors(): Promise<IUserData[] | null> {
@@ -392,7 +421,7 @@ export class Course extends BaseCanvasObject<ICourseData> implements IContentHav
     }
 
     getTab(label: string) {
-        return this.canvasData.tabs.find((tab: Record<string, any>) => tab.label === label) || null;
+        return this.canvasData.tabs?.find((tab: Record<string, any>) => tab.label === label) || null;
     }
 
 

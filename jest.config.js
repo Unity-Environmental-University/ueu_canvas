@@ -5,6 +5,7 @@ const {compilerOptions} = require("./tsconfig.json");
 module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'jsdom',
+    testPathIgnorePatterns: ['/node_modules/', '/dist/'],
     "transformIgnorePatterns": [
         "node_modules/(?!isomorphic-git)"
     ],

@@ -47,6 +47,21 @@ export interface IRubricAssociationData {
     hide_outcome_results: boolean,
 }
 
+export interface IRubricData {
+    id: number,
+    title: string,
+    context_id: number,
+    context_type: string,
+    points_possible: number,
+    reusable: boolean,
+    read_only: boolean,
+    free_form_criterion_comments: boolean,
+    hide_score_total: boolean,
+    data: null,
+    assessments?: IRubricAssessmentData[],
+    associations?: IRubricAssociationData[],
+}
+
 export interface RubricTypes {
     id: number,
     title: string,
