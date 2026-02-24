@@ -7,6 +7,11 @@ export interface HasUser extends CanvasData {
     user: IUserData
 }
 
+export interface IEnrollmentData extends CanvasData {
+    user: IUserData,
+    enrollment_state: string,
+}
+
 export interface IUserData extends CanvasData {
     id: number,
     name: string,

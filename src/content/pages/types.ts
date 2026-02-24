@@ -2,6 +2,7 @@ import {CanvasData} from "@/canvasDataDefs";
 
 export interface IPageData extends CanvasData {
     page_id: number,
+    id?: number,
     url: string,
     title: string,
     body: string,

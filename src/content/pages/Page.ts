@@ -20,6 +20,10 @@ export class Page extends BaseContentItem {
         return this.canvasData[this.bodyKey];
     }
 
+    get title(): string {
+        return this.canvasData[this.nameKey];
+    }
+
     async updateContent(text?: string | null, name?: string | null, config?: ICanvasCallConfig) {
         const data: Record<string, any> = {};
         if (text) {

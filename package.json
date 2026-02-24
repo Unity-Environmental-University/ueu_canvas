@@ -14,9 +14,9 @@
   },
   "scripts": {
     "test": "ts-jest",
-    "build": "webpack && tsc --emitDeclarationOnly",
+    "build": "webpack && tsc && tsc-alias",
     "build:webpack": "webpack",
-    "build:types": "tsc --emitDeclarationOnly"
+    "build:types": "tsc --emitDeclarationOnly && tsc-alias"
   },
   "keywords": [],
   "author": "",
@@ -38,6 +38,7 @@
     "process": "^0.11.10",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.2",
+    "tsc-alias": "^1.8.16",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^5.7.3",
     "webpack": "^5.97.1",
