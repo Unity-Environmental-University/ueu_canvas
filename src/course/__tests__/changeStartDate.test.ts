@@ -110,7 +110,7 @@ describe("getCurrentStartDate", () => {
     expect(getModuleUnlockStartDate(mockModules)).toEqual(new Temporal.PlainDate(2022, 12, 24));
   });
   it("throws an error if it can't find overview module", () => {
-    expect(() => getModuleUnlockStartDate([])).toThrowError(NoOverviewModuleFoundError);
+    expect(() => getModuleUnlockStartDate([])).toThrow(NoOverviewModuleFoundError);
   });
   it("returns null if there's no lock date in the first module", () => {
     const mockModules = [{ ...mockModuleData, unlock_at: null }];
