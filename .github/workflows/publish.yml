@@ -27,4 +27,4 @@ jobs:
 
       - run: npm run test --if-present
 
-      - run: npm publish --access public --provenance
+      - run: npm publish --access public --provenance --loglevel info
