@@ -28,7 +28,7 @@
     "@types/assert": "^1.5.11",
     "@types/jest": "^30.0.0",
     "@types/webpack": "^5.28.5",
-    "copy-webpack-plugin": "^12.0.2",
+    "copy-webpack-plugin": "^14.0.0",
     "dotenv": "^16.4.7",
     "html-webpack-plugin": "^5.6.3",
     "jest": "^30.2.0",
