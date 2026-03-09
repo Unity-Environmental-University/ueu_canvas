@@ -66,7 +66,6 @@ export class Course extends BaseCanvasObject<ICourseData> implements IContentHav
     getAssociatedCourses: (redownload?: boolean) => Promise<Course[]>;
 
     constructor(data: ICourseData) {
-        console.warn("Course is being deprecated");
         super(data);
         this.isBlueprint = (() => isBlueprint(data));
         this.getAssociatedCourses = cachedGetAssociatedCoursesFunc(this)
