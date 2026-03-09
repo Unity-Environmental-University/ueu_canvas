@@ -33,3 +33,12 @@ npm run build
 ```bash
 npx jest
 ```
+
+### Tag a release to get auto-publish to run
+```bash
+git tag v1.1.1
+```
+
+```bash
+git push origin v1.1.1
+```
