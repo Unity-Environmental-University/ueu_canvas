@@ -41,7 +41,7 @@ import assert from "assert";
 
 const HOMETILE_WIDTH = 500;
 
-export const COURSE_CODE_REGEX = /^(.+[^_])?_?(\w{4}\d{3,4})/i;
+export const COURSE_CODE_REGEX = /^(.+[^_])?_?([A-Z]{4}\d{3,4})/i;
 
 export class Course
   extends BaseCanvasObject<ICourseData>
