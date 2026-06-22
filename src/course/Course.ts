@@ -195,29 +195,35 @@ export class Course
     return getModuleUnlockStartDate(await this.getModules());
   }
 
-  public isUndergrad() {
-    if (this.courseCode) {
-      const match = this.courseCode.match(/\d{3,4}/);
-      if (match) return parseInt(match[0], 10) < 500;
-    }
-    return false;
-  }
+  public isUndergrad(): boolean {
+		const match = this.courseCode?.match(/\d{3,4}/);
+		const codeNum = match ? parseInt(match[0], 10) : 0;
 
-  public isGrad() {
-    if (this.courseCode) {
-      const match = this.courseCode.match(/\d{3,4}/);
-      if (match) return parseInt(match[0], 10) >= 500 && parseInt(match[0], 10) < 1000;
-    }
-    return false;
-  }
+		return codeNum < 500;
+	}
 
-  public isCareerInstitute() {
-    if (this.courseCode) {
-      const match = this.courseCode.match(/\d{4}/);
-      if (match) return true;
-    }
-    return false;
-  }
+	public isGrad(): boolean {
+		const match = this.courseCode?.match(/\d{3,4}/);
+		const codeNum = match ? parseInt(match[0], 10) : 0;
+
+		return codeNum >= 500 && codeNum < 1000;
+	}
+
+	public isCareerInstitute(): boolean {
+		return /\d{4}/.test(this.courseCode || "");
+	}
+
+	public isENGR(): boolean {
+		const code = this.courseCode?.toLowerCase() || "";
+
+		return this.isUndergrad() && code.includes("engr");
+	}
+
+	public isUgProfUpperLevel(): boolean {
+		const code = this.courseCode?.toLowerCase() || "";
+
+		return this.isUndergrad() && code.includes("prof") && /[34]\d\d/.test(code);
+	}
 
   async getInstructors(): Promise<IUserData[] | null> {
     return (await fetchJson(`/api/v1/courses/${this.id}/users?enrollment_type=teacher`)) as IUserData[];
