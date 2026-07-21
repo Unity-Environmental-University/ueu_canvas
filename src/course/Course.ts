@@ -195,7 +195,9 @@ export class Course
     return getModuleUnlockStartDate(await this.getModules());
   }
 
-  public isUndergrad(): boolean {
+	public isUndergrad(): boolean {
+		if (this.courseCode?.toLowerCase().includes('dev_ug')) return true;
+
 		const match = this.courseCode?.match(/\d{3,4}/);
 		const codeNum = match ? parseInt(match[0], 10) : 0;
 
@@ -203,6 +205,8 @@ export class Course
 	}
 
 	public isGrad(): boolean {
+		if (this.courseCode?.toLowerCase().includes('dev_grad')) return true;
+
 		const match = this.courseCode?.match(/\d{3,4}/);
 		const codeNum = match ? parseInt(match[0], 10) : 0;
 
