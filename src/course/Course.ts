@@ -193,24 +193,25 @@ export class Course
 
   async getStartDateFromModules() {
     return getModuleUnlockStartDate(await this.getModules());
+	}
+
+	private getCourseNumber(): number | null {
+		const match = this.courseCode?.match(/\d{3,4}/);
+		return match ? parseInt(match[0], 10) : null;
   }
 
 	public isUndergrad(): boolean {
 		if (this.courseCode?.toLowerCase().includes('dev_ug')) return true;
 
-		const match = this.courseCode?.match(/\d{3,4}/);
-		const codeNum = match ? parseInt(match[0], 10) : 0;
-
-		return codeNum < 500;
+		const codeNum = this.getCourseNumber();
+		return codeNum != null && codeNum < 500;
 	}
 
 	public isGrad(): boolean {
 		if (this.courseCode?.toLowerCase().includes('dev_grad')) return true;
 
-		const match = this.courseCode?.match(/\d{3,4}/);
-		const codeNum = match ? parseInt(match[0], 10) : 0;
-
-		return codeNum >= 500 && codeNum < 1000;
+		const codeNum = this.getCourseNumber();
+		return codeNum != null && codeNum >= 500 && codeNum < 1000;
 	}
 
 	public isCareerInstitute(): boolean {
