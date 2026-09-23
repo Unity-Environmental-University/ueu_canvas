@@ -48,9 +48,9 @@ describe("Syllabus date changes", () => {
   test("changing date does not double paragraph tags", () => {
     const now = Temporal.Now.plainDateISO();
     const newSyllabus = updatedDateSyllabusHtml(baseSyllabus, now);
-    expect(newSyllabus).not.toContain("<p>&nbsp;</p>");
-    expect(newSyllabus).not.toContain("<p></p>");
-    expect(newSyllabus).not.toContain(/<p>\s*<\/p>/);
+    expect(newSyllabus.html).not.toContain("<p>&nbsp;</p>");
+    expect(newSyllabus.html).not.toContain("<p></p>");
+    expect(newSyllabus.html).not.toMatch(/<p>\s*<\/p>/);
   });
 });
 
