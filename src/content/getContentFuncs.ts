@@ -1,6 +1,7 @@
 import {CONTENT_KINDS, getContentKindFromUrl} from "@/content/determineContent";
 import assert from "assert";
 import {BaseContentItem} from "@/content/BaseContentItem";
+import { isCanvasUrl } from "@/instance";
 
 
 
@@ -24,7 +25,5 @@ export function getFileLinks(body: string, courseId: number) {
 }
 
 export function getExternalLinks(body: string, courseId: number) {
-    // Correct regex to exclude unity.instructure.com links properly
-    return getAllLinks(body).filter(a => !a.match(/:\/\/unity\.instructure\.com\//i))
-
+    return getAllLinks(body).filter(a => !isCanvasUrl(a))
 }
