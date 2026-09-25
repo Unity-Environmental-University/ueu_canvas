@@ -25,5 +25,6 @@ export * from './date';
 export * from './types';
 export * from './fetch';
 export * from './canvasUtils';
+export * from './instance';
 
 export * as mocks from './__mocks__'

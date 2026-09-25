@@ -17,7 +17,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "ts-jest",
+    "test": "jest",
     "build": "webpack && tsc && tsc-alias",
     "build:webpack": "webpack",
     "build:types": "tsc --emitDeclarationOnly && tsc-alias"
