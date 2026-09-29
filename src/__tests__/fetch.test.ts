@@ -3,7 +3,7 @@ import { describe, expect } from "@jest/globals";
 import { CanvasData } from "../canvasDataDefs";
 import { getPagedDataGenerator } from "@/fetch/getPagedDataGenerator";
 import { fetchGetConfig } from "@/fetch/utils";
-import { fetchJson } from "@/fetch/fetchJson";
+import { fetchJson, FetchJsonError } from "@/fetch/fetchJson";
 import { canvasDataFetchGenFunc } from "@/fetch/canvasDataFetchGenFunc";
 
 global.fetch = jest.fn();
@@ -58,20 +58,20 @@ describe("fetchJson", () => {
     await expect(async () => await fetchJson("apple/dumpling/gang")).rejects.toThrow();
   });
   it("accepts paths starting with /", async () => {
-    fetchMock.mockResolvedValue({ json: async () => testData });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => testData });
     expect(await fetchJson("/apple/dumpling/gang")).toEqual(testData);
   });
   it("accepts paths starting with http, http, ftp", async () => {
-    fetchMock.mockResolvedValue({ json: async () => testData });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => testData });
     expect(await fetchJson("http://localhost:8080/apple/dumpling/gang")).toEqual(testData);
-    fetchMock.mockResolvedValue({ json: async () => testData });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => testData });
     expect(await fetchJson("https://localhost:8080/apple/dumpling/gang")).toEqual(testData);
-    fetchMock.mockResolvedValue({ json: async () => testData });
+    fetchMock.mockResolvedValue({ ok: true, json: async () => testData });
     expect(await fetchJson("ftp://localhost:8080/apple/dumpling/gang")).toEqual(testData);
   });
 
   it("incorporatesQueryParams", async () => {
-    fetchMock.mockReturnValue({ json: async () => testData });
+    fetchMock.mockReturnValue({ ok: true, json: async () => testData });
     const fetchInit: RequestInit = { method: "PUT" };
     await fetchJson("/url", {
       queryParams: {
@@ -80,6 +80,30 @@ describe("fetchJson", () => {
       fetchInit,
     });
     expect(fetchMock).toHaveBeenCalledWith("/url?query=test", fetchInit);
+  });
+  it("throws on non-2xx responses with a JSON body and exposes the body", async () => {
+    const errorBody = { errors: { base: [{ message: "boom" }] } };
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      json: async () => errorBody,
+    } as any);
+    await expect(fetchJson("/url")).rejects.toBeInstanceOf(FetchJsonError);
+  });
+  it("includes the error body on non-2xx failures", async () => {
+    const errorBody = { errors: { base: [{ message: "boom" }] } };
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      json: async () => errorBody,
+    } as any);
+    await expect(fetchJson("/url")).rejects.toMatchObject({
+      status: 400,
+      statusText: "Bad Request",
+      body: errorBody,
+    });
   });
 });
 
