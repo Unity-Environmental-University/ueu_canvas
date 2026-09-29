@@ -34,7 +34,7 @@ export async function fetchJson<T = Record<string, any>>(
 	if (!response.ok) {
 		console.error("Request failed - ", response.status, response.statusText, response.body);
 
-		let errorBody: any;
+		let errorBody: unknown;
 		try {
 			errorBody = await response.json();
 		} catch {
