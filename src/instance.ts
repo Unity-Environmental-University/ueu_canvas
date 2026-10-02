@@ -21,6 +21,9 @@ export interface CanvasInstanceConfig {
   /** References page slug in the template course. */
   referencesPageSlug: string;
 
+  /** Name of the course holding faculty bio pages on this instance. */
+  facultyBiosCourseName: string;
+
   /** External API endpoints that may vary by deployment. */
   externalApis: {
     citeas: string;
@@ -32,6 +35,7 @@ const UNITY_DEFAULTS: CanvasInstanceConfig = {
   hostname: "unity.instructure.com",
   templateCourseId: 3850558,
   referencesPageSlug: "learning-materials-reference-page",
+  facultyBiosCourseName: "Faculty Bios",
   externalApis: {
     citeas: "https://api.citeas.org/product",
   },

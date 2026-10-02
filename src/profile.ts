@@ -8,14 +8,29 @@ import {getSingleCourse} from "@/course/toolbox";
 import {Page} from "@/content/pages/Page";
 
 import {IProfile, IProfileWithUser} from "@/types";
+import {getInstance} from "@/instance";
 
 
-let facultyCourseCached: Course;
+/** Thrown when the active Canvas instance has no faculty bios course. */
+export class FacultyBiosCourseNotFoundError extends Error {
+    constructor(courseName: string, baseUrl: string) {
+        super(`No "${courseName}" course found on ${baseUrl}`);
+        this.name = "FacultyBiosCourseNotFoundError";
+    }
+}
+
+/* keyed by instance so switching instances never returns another instance's course */
+const facultyCourseCache = new Map<string, Course>();
 
 async function getFacultyCourse() {
-    const facultyCourse = facultyCourseCached ?? await getSingleCourse('Faculty Bios', (await Account.getAll()).map(a => a.id));
-    facultyCourseCached = facultyCourse;
-    assert(facultyCourse);
+    const {baseUrl, facultyBiosCourseName} = getInstance();
+    const key = `${baseUrl}|${facultyBiosCourseName}`;
+    let facultyCourse = facultyCourseCache.get(key);
+    if (!facultyCourse) {
+        facultyCourse = await getSingleCourse(facultyBiosCourseName, (await Account.getAll()).map(a => a.id));
+        if (!facultyCourse) throw new FacultyBiosCourseNotFoundError(facultyBiosCourseName, baseUrl);
+        facultyCourseCache.set(key, facultyCourse);
+    }
     return facultyCourse;
 }
 
@@ -76,6 +91,10 @@ function getProfileFromPageHtml(html:string, user: IUserData) {
 }
 function getProfileBody(el:Element) {
     const h4s = el.querySelectorAll('h4');
+    // TODO: this filter doesn't do what it reads as. search() returns -1 on no match (truthy)
+    // and 0 on a match at index 0 (falsy), so it passes almost every h4. In practice the bio
+    // is picked by position (potentials[0]) and that works on real pages. If you change the
+    // filter, check it against real bio pages first.
     const instructorHeaders = Array.from(h4s).filter((el) => {
         return el.innerHTML.search(/instructor/i)
     })
@@ -111,6 +130,7 @@ function getDisplayName(el:Element) {
 
     if (titles.length === 0) {
         const headings = Array.from(el.querySelectorAll('p strong'));
+        // TODO: same search() truthiness quirk as in getProfileBody; see the note there.
         const instructorHeaders = headings.filter(el => el.innerHTML.search(/Instructor/));
         titles = instructorHeaders.map((el) => el.previousElementSibling)
             .filter((el) => el instanceof Element) as Element[]

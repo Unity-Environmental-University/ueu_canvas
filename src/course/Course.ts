@@ -16,7 +16,7 @@ import { filterUniqueFunc, formDataify, ICanvasCallConfig, renderAsyncGen } from
 import { getModuleUnlockStartDate } from "./changeStartDate";
 import { getModuleOverview, getModulesByWeekNumber, getModuleWeekNumber, moduleGenerator } from "./modules";
 import { uploadFile } from "../files";
-import { getCurioPageFrontPageProfile, getPotentialFacultyProfiles } from "../profile";
+import { FacultyBiosCourseNotFoundError, getCurioPageFrontPageProfile, getPotentialFacultyProfiles } from "../profile";
 import { getCourseById, getCourseData, getGradingStandards, getSingleCourse } from "./toolbox";
 import { assignmentDataGen } from "@/content/assignments";
 import { baseCourseCode, parseCourseCode } from "@/course/code";
@@ -543,6 +543,8 @@ export class Course
       }
       return profiles;
     } catch (e) {
+      // let the UI tell the user this instance has no bios course
+      if (e instanceof FacultyBiosCourseNotFoundError) throw e;
       return [] as IProfileWithUser[];
     }
   }

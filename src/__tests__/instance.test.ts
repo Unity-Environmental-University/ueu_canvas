@@ -10,6 +10,7 @@ describe("instance defaults", () => {
     expect(getInstance().hostname).toBe("unity.instructure.com");
     expect(getTemplateCourseId()).toBe(3850558);
     expect(getReferencesPageSlug()).toBe("learning-materials-reference-page");
+    expect(getInstance().facultyBiosCourseName).toBe("Faculty Bios");
   });
 });
 
