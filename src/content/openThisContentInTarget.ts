@@ -16,8 +16,9 @@ export const openThisContentInTarget = async function(
     const currentCourseId = getIdOrCourse(currentCourse);
     const targetCourseIds = Array.isArray(target) ? target.map(getIdOrCourse) : [getIdOrCourse(target)];
 
-    
-    const currentContentItem: BaseContentItem | null = await getContentItemFromUrl(document.documentURI);
+	const currentContentItem: BaseContentItem | null =
+		await getContentItemFromUrl(document.documentURI);
+
     const targetInfos = targetCourseIds.map((targetCourseId) => {
         return {
             courseId: targetCourseId,
