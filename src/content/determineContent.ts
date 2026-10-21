@@ -3,6 +3,7 @@ import {Page} from "@/content/pages/Page";
 import {Discussion} from "@/content/discussions/Discussion";
 import {ICanvasCallConfig} from "@/canvasUtils";
 import {Assignment} from "@/content/assignments/Assignment";
+import {Syllabus} from "@/content/assignments/Syllabus";
 import {ContentData} from "@/content/types";
 import AssignmentKind from "@/content/assignments/AssignmentKind";
 import QuizKind from "@/content/quizzes/QuizKind";
@@ -30,16 +31,27 @@ export const ContentKinds = {
 
 export function getContentClassFromUrl(url: string | null = null) {
     if (!url) url = document.documentURI;
-    for (const class_ of [Assignment, Quiz, Page, Discussion]) {
+    // Syllabus must come before Assignment: its URL also contains "assignments".
+    for (const class_ of [Syllabus, Assignment, Quiz, Page, Discussion]) {
         if (class_.contentUrlPart && url.includes(class_.contentUrlPart)) return class_;
     }
     return null;
 }
 
 export async function getContentItemFromUrl(url: string | null = null) {
-    const ContentClass = getContentClassFromUrl(url);
-    if (!ContentClass) return null;
-    return await ContentClass.getFromUrl(url);
+	const ContentClass = getContentClassFromUrl(url);
+	console.log("ContentClass: ", ContentClass);
+	if (!ContentClass) return null;
+
+	let contentItem;
+
+	try {
+		contentItem = await ContentClass.getFromUrl(url);
+	} catch (e: unknown) {
+		console.error(`Error getting content item from URL: ${e}`);
+		return null;
+	}
+	return contentItem;
 }
 
 export function getContentKindFromUrl(url:string) {
