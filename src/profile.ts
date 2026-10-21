@@ -89,23 +89,19 @@ function getProfileFromPageHtml(html:string, user: IUserData) {
         imageLink: image?.src,
     } as IProfileWithUser
 }
-function getProfileBody(el:Element) {
-    const h4s = el.querySelectorAll('h4');
-    // TODO: this filter doesn't do what it reads as. search() returns -1 on no match (truthy)
-    // and 0 on a match at index 0 (falsy), so it passes almost every h4. In practice the bio
-    // is picked by position (potentials[0]) and that works on real pages. If you change the
-    // filter, check it against real bio pages first.
-    const instructorHeaders = Array.from(h4s).filter((el) => {
-        return el.innerHTML.search(/instructor/i)
-    })
-    let potentials:string[] = [];
-    for(const header of instructorHeaders) {
-        const potentialParent = header.parentElement;
-        if(potentialParent) {
-            header.remove();
-            potentials.push(potentialParent.innerHTML);
-        }
-    }
+function getProfileBody(el: Element) {
+	const h4s = el.querySelectorAll("h4");
+	const instructorHeaders = Array.from(h4s).filter((el) => {
+		return /instructor/i.test(el.innerHTML);
+	});
+	let potentials: string[] = [];
+	for (const header of instructorHeaders) {
+		const potentialParent = header.parentElement;
+		if (potentialParent) {
+			header.remove();
+			potentials.push(potentialParent.innerHTML);
+		}
+	}
 
     potentials = winnow(potentials, [
         (potential) => potential.length > 0,
@@ -128,13 +124,15 @@ function getDisplayName(el:Element) {
             .filter((el) => el instanceof Element) as Element[];
     }
 
-    if (titles.length === 0) {
-        const headings = Array.from(el.querySelectorAll('p strong'));
-        // TODO: same search() truthiness quirk as in getProfileBody; see the note there.
-        const instructorHeaders = headings.filter(el => el.innerHTML.search(/Instructor/));
-        titles = instructorHeaders.map((el) => el.previousElementSibling)
-            .filter((el) => el instanceof Element) as Element[]
-    }
+	if (titles.length === 0) {
+		const headings = Array.from(el.querySelectorAll("p strong"));
+		const instructorHeaders = headings.filter((heading) =>
+			/Instructor/i.test(heading.innerHTML),
+		);
+		titles = instructorHeaders
+			.map((el) => el.previousElementSibling)
+			.filter((el) => el instanceof Element) as Element[];
+	}
 
     titles = titles.filter((title) => title.textContent && title.textContent.length > 0)
     if (titles.length > 0) return titles[0].textContent;
