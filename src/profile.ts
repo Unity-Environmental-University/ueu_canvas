@@ -8,14 +8,29 @@ import {getSingleCourse} from "@/course/toolbox";
 import {Page} from "@/content/pages/Page";
 
 import {IProfile, IProfileWithUser} from "@/types";
+import {getInstance} from "@/instance";
 
 
-let facultyCourseCached: Course;
+/** Thrown when the active Canvas instance has no faculty bios course. */
+export class FacultyBiosCourseNotFoundError extends Error {
+    constructor(courseName: string, baseUrl: string) {
+        super(`No "${courseName}" course found on ${baseUrl}`);
+        this.name = "FacultyBiosCourseNotFoundError";
+    }
+}
+
+/* keyed by instance so switching instances never returns another instance's course */
+const facultyCourseCache = new Map<string, Course>();
 
 async function getFacultyCourse() {
-    const facultyCourse = facultyCourseCached ?? await getSingleCourse('Faculty Bios', (await Account.getAll()).map(a => a.id));
-    facultyCourseCached = facultyCourse;
-    assert(facultyCourse);
+    const {baseUrl, facultyBiosCourseName} = getInstance();
+    const key = `${baseUrl}|${facultyBiosCourseName}`;
+    let facultyCourse = facultyCourseCache.get(key);
+    if (!facultyCourse) {
+        facultyCourse = await getSingleCourse(facultyBiosCourseName, (await Account.getAll()).map(a => a.id));
+        if (!facultyCourse) throw new FacultyBiosCourseNotFoundError(facultyBiosCourseName, baseUrl);
+        facultyCourseCache.set(key, facultyCourse);
+    }
     return facultyCourse;
 }
 
@@ -74,19 +89,19 @@ function getProfileFromPageHtml(html:string, user: IUserData) {
         imageLink: image?.src,
     } as IProfileWithUser
 }
-function getProfileBody(el:Element) {
-    const h4s = el.querySelectorAll('h4');
-    const instructorHeaders = Array.from(h4s).filter((el) => {
-        return el.innerHTML.search(/instructor/i)
-    })
-    let potentials:string[] = [];
-    for(const header of instructorHeaders) {
-        const potentialParent = header.parentElement;
-        if(potentialParent) {
-            header.remove();
-            potentials.push(potentialParent.innerHTML);
-        }
-    }
+function getProfileBody(el: Element) {
+	const h4s = el.querySelectorAll("h4");
+	const instructorHeaders = Array.from(h4s).filter((el) => {
+		return /instructor/i.test(el.innerHTML);
+	});
+	let potentials: string[] = [];
+	for (const header of instructorHeaders) {
+		const potentialParent = header.parentElement;
+		if (potentialParent) {
+			header.remove();
+			potentials.push(potentialParent.innerHTML);
+		}
+	}
 
     potentials = winnow(potentials, [
         (potential) => potential.length > 0,
@@ -109,12 +124,15 @@ function getDisplayName(el:Element) {
             .filter((el) => el instanceof Element) as Element[];
     }
 
-    if (titles.length === 0) {
-        const headings = Array.from(el.querySelectorAll('p strong'));
-        const instructorHeaders = headings.filter(el => el.innerHTML.search(/Instructor/));
-        titles = instructorHeaders.map((el) => el.previousElementSibling)
-            .filter((el) => el instanceof Element) as Element[]
-    }
+	if (titles.length === 0) {
+		const headings = Array.from(el.querySelectorAll("p strong"));
+		const instructorHeaders = headings.filter((heading) =>
+			/Instructor/i.test(heading.innerHTML),
+		);
+		titles = instructorHeaders
+			.map((el) => el.previousElementSibling)
+			.filter((el) => el instanceof Element) as Element[];
+	}
 
     titles = titles.filter((title) => title.textContent && title.textContent.length > 0)
     if (titles.length > 0) return titles[0].textContent;
