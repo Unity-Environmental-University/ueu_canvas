@@ -46,7 +46,7 @@ export function getCourseDataGenerator(
 
 export function getCourseGenerator(
     queryString: string | undefined | null, accountIds: number[] | number, term?: Term, config?: ICanvasCallConfig<GetCoursesFromAccountOptions>) {
-    return generatorMap(getCourseDataGenerator(queryString, accountIds, term, config), courseData => new Course(courseData));
+    return generatorMap(getCourseDataGenerator(queryString, accountIds, term, config), courseData => new Course(courseData, config?.origin));
 }
 
 export async function getSingleCourse(queryString: string, accountIds: number[], term?: Term, config?: ICanvasCallConfig<GetCoursesFromAccountOptions>) {
@@ -56,13 +56,13 @@ export async function getSingleCourse(queryString: string, accountIds: number[],
             overrideConfig({queryParams: {search_term: queryString}}, config)
         )
 
-        if (courseDatas.length > 0) return new Course(courseDatas[0]);
+        if (courseDatas.length > 0) return new Course(courseDatas[0], config?.origin);
     }
     return undefined;
 }
 
 export async function getCourseById(id: number, config?: ICanvasCallConfig<GetCoursesFromAccountOptions>) {
-    return new Course(await fetchJson(`/api/v1/courses/${id}`, config));
+    return new Course(await fetchJson(`/api/v1/courses/${id}`, config), config?.origin);
 }
 
 export async function createNewCourse(courseCode: string, accountId: number, name?: string, config?: ICanvasCallConfig) {
