@@ -45,7 +45,7 @@ export async function changeModuleLockDate(courseId: number, module: IModuleData
         }
     }
     const url = `/api/v1/courses/${courseId}/modules/${module.id}`;
-    const result = fetchJson(url, {
+    return await fetchJson<IModuleData>(url, {
         fetchInit: {
             method: 'PUT',
             body: formDataify(payload)
