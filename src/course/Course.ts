@@ -63,8 +63,8 @@ export class Course
   isBlueprint: () => boolean;
   getAssociatedCourses: (redownload?: boolean) => Promise<Course[]>;
 
-  constructor(data: ICourseData) {
-    super(data);
+  constructor(data: ICourseData, origin?: string) {
+    super(data, origin);
     this.isBlueprint = () => isBlueprint(data);
     this.getAssociatedCourses = cachedGetAssociatedCoursesFunc(this);
   }
@@ -84,7 +84,7 @@ export class Course
 
   static async getCourseById(courseId: number, config: ICanvasCallConfig<GetCourseOptions> | undefined = undefined) {
     const data = await getCourseData(courseId, config);
-    return new Course(data);
+    return new Course(data, config?.origin);
   }
 
   static async publishAll(courses: number[] | Course[], accountId: number) {
@@ -177,6 +177,7 @@ export class Course
     }
     const modules = await renderAsyncGen(
       moduleGenerator(this.id, {
+        origin: config?.origin ?? this.origin,
         queryParams: {
           include: ["items", "content_details"],
         },
@@ -231,11 +232,11 @@ export class Course
 	}
 
   async getInstructors(): Promise<IUserData[] | null> {
-    return (await fetchJson(`/api/v1/courses/${this.id}/users?enrollment_type=teacher`)) as IUserData[];
+    return (await fetchJson(`/api/v1/courses/${this.id}/users?enrollment_type=teacher`, this.withMyOrigin())) as IUserData[];
   }
 
-  async getLatePolicy(this: { id: number }, config?: ICanvasCallConfig) {
-    const latePolicyResult = await fetchJson(`/api/v1/courses/${this.id}/late_policy`, config);
+  async getLatePolicy(this: { id: number; origin?: string }, config?: ICanvasCallConfig) {
+    const latePolicyResult = await fetchJson(`/api/v1/courses/${this.id}/late_policy`, { ...config, origin: config?.origin ?? this.origin });
     if ("late_policy" in latePolicyResult) return latePolicyResult.late_policy as ILatePolicyData;
     return undefined;
   }
@@ -368,22 +369,23 @@ export class Course
   //  */
   async getAssignments(config?: ICanvasCallConfig): Promise<Assignment[]> {
     console.warn("deprecated, use assignmentDataGen instead");
-    config = overrideConfig(config, { queryParams: { include: ["due_at"] } });
+    config = this.withMyOrigin(overrideConfig(config, { queryParams: { include: ["due_at"] } }));
     const assignmentDatas = await renderAsyncGen(assignmentDataGen(this.id, config));
-    return assignmentDatas.map((data) => new Assignment(data, this.id));
+    return assignmentDatas.map((data) => new Assignment(data, this.id, this.origin));
   }
 
   cachedContent: BaseContentItem[] = [];
 
   async getContent(config?: ICanvasCallConfig, refresh = false) {
     if (refresh || this.cachedContent.length == 0) {
+      config = this.withMyOrigin(config);
       const discussions = await this.getDiscussions(config);
       const assignments = await renderAsyncGen(assignmentDataGen(this.id, config));
       const quizzes = await this.getQuizzes(config);
       const pages = await this.getPages(config);
       this.cachedContent = [
         ...discussions,
-        ...assignments.map((a) => new Assignment(a, this.id)),
+        ...assignments.map((a) => new Assignment(a, this.id, this.origin)),
         ...quizzes,
         ...pages,
       ];
@@ -392,30 +394,30 @@ export class Course
   }
 
   async getDiscussions(config?: ICanvasCallConfig): Promise<Discussion[]> {
-    return (await Discussion.getAllInCourse(this.id, config)) as Discussion[];
+    return (await Discussion.getAllInCourse(this.id, this.withMyOrigin(config))) as Discussion[];
   }
 
   async getAssignmentGroups(config?: ICanvasCallConfig) {
-    return await getPagedData<IAssignmentGroup>(`/api/v1/courses/${this.id}/assignment_groups`, config);
+    return await getPagedData<IAssignmentGroup>(`/api/v1/courses/${this.id}/assignment_groups`, this.withMyOrigin(config));
   }
 
   async getQuizzes(config?: ICanvasCallConfig) {
-    return (await Quiz.getAllInCourse(this.id, config)) as Quiz[];
+    return (await Quiz.getAllInCourse(this.id, this.withMyOrigin(config))) as Quiz[];
   }
 
   async getSubsections() {
     const url = `/api/v1/courses/${this.id}/sections`;
-    return await fetchJson(url);
+    return await fetchJson(url, this.withMyOrigin());
   }
 
   async getTabs(config?: ICanvasCallConfig) {
-    return (await fetchJson(`/api/v1/courses/${this.id}/tabs`, config)) as ITabData[];
+    return (await fetchJson(`/api/v1/courses/${this.id}/tabs`, this.withMyOrigin(config))) as ITabData[];
   }
 
   async getFrontPage() {
     try {
-      const data = (await fetchJson(`${this.contentUrlPath}/front_page`)) as IPageData;
-      return new Page(data, this.id);
+      const data = (await fetchJson(`${this.contentUrlPath}/front_page`, this.withMyOrigin())) as IPageData;
+      return new Page(data, this.id, this.origin);
     } catch (error) {
       return null;
     }
@@ -427,13 +429,14 @@ export class Course
 
   async reload() {
     const id = this.id;
-    const reloaded = await Course.getCourseById(id);
+    const reloaded = await Course.getCourseById(id, { origin: this.origin });
     this.canvasData = reloaded.rawData;
   }
 
   async changeSyllabus(newHtml: string) {
     this.canvasData["syllabus_body"] = newHtml;
     return await fetchJson(`/api/v1/courses/${this.id}`, {
+      origin: this.origin,
       fetchInit: {
         method: "PUT",
         body: formDataify({
@@ -448,6 +451,7 @@ export class Course
   async publish() {
     const url = `/api/v1/courses/${this.id}`;
     const courseData = await fetchJson<ICourseData>(url, {
+      origin: this.origin,
       fetchInit: {
         method: "PUT",
         body: formDataify({ offer: true }),
@@ -462,7 +466,7 @@ export class Course
   }
 
   async getParentCourse(return_dev_search = false) {
-    const migrations = await getPagedData(`/api/v1/courses/${this.id}/content_migrations`);
+    const migrations = await getPagedData(`/api/v1/courses/${this.id}/content_migrations`, this.withMyOrigin());
     const parentCode = this.devCode;
 
     if (migrations.length < 1) {
@@ -475,7 +479,7 @@ export class Course
 
     try {
       for (const migration of migrations) {
-        const course = await Course.getCourseById(migration["settings"]["source_course_id"]);
+        const course = await Course.getCourseById(migration["settings"]["source_course_id"], { origin: this.origin });
         if (course && course.codePrefix.includes("DEV")) return course;
       }
     } catch (e) {
@@ -515,7 +519,7 @@ export class Course
   // }
 
   public getPages(config: ICanvasCallConfig | null = null) {
-    return Page.getAllInCourse(this.id, config) as Promise<Page[]>;
+    return Page.getAllInCourse(this.id, this.withMyOrigin(config)) as Promise<Page[]>;
   }
 
   public async getFrontPageProfile() {
@@ -550,11 +554,11 @@ export class Course
   }
 
   public async getSettings(config?: ICanvasCallConfig) {
-    return (await fetchJson(`/api/v1/courses/${this.id}/settings`, config)) as ICourseSettings;
+    return (await fetchJson(`/api/v1/courses/${this.id}/settings`, this.withMyOrigin(config))) as ICourseSettings;
   }
 
   public async updateSettings(newSettings: Partial<ICourseSettings>, config?: ICanvasCallConfig) {
-    const configToUse = ApiWriteConfig(newSettings, config);
+    const configToUse = ApiWriteConfig(newSettings, this.withMyOrigin(config));
     return (await fetchJson(`/api/v1/courses/${this.id}/settings`, configToUse)) as ICourseSettings;
   }
 }

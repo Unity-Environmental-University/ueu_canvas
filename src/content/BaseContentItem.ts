@@ -19,8 +19,8 @@ export class BaseContentItem extends BaseCanvasObject<CanvasData> {
 
     _courseId: number;
 
-    constructor(canvasData: CanvasData, courseId: number) {
-        super(canvasData);
+    constructor(canvasData: CanvasData, courseId: number, origin?: string) {
+        super(canvasData, origin);
         this._courseId = courseId;
     }
 
@@ -40,7 +40,7 @@ export class BaseContentItem extends BaseCanvasObject<CanvasData> {
     static async getAllInCourse<T extends BaseContentItem>(courseId: number, config: ICanvasCallConfig | null = null) {
         const url = this.getAllUrl(courseId);
         const data = await getPagedData(url, config);
-        return data.map(item => new this(item, courseId)) as T[];
+        return data.map(item => new this(item, courseId, config?.origin)) as T[];
     }
 
     static clearAddedContentTags(text: string) {
@@ -70,8 +70,8 @@ export class BaseContentItem extends BaseCanvasObject<CanvasData> {
         return null;
     }
 
-    static async getById<T extends BaseContentItem>(contentId: number, courseId: number) {
-        return new this(await this.getDataById<T>(contentId, courseId), courseId)
+    static async getById<T extends BaseContentItem>(contentId: number, courseId: number, config: ICanvasCallConfig | null = null) {
+        return new this(await this.getDataById<T>(contentId, courseId, config), courseId, config?.origin)
     }
 
 
@@ -141,7 +141,7 @@ export class BaseContentItem extends BaseCanvasObject<CanvasData> {
         const ContentClass = this.constructor as typeof BaseContentItem
         const targets = await ContentClass.getAllInCourse(
             targetCourseId,
-            {queryParams: {search_term: this.name}}
+            this.withMyOrigin({queryParams: {search_term: this.name}})
         )
         return targets.find((target: BaseContentItem) => target.name == this.name);
     }
