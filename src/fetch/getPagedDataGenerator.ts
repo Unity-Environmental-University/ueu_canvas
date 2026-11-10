@@ -1,5 +1,6 @@
 import {CanvasData} from "@/canvasDataDefs";
-import {ICanvasCallConfig, searchParamsFromObject} from "@/canvasUtils";
+import {ICanvasCallConfig} from "@/canvasUtils";
+import {buildUrl, checkedFetch} from "@/fetch/checkedFetch";
 
 /**
  * @param url The entire path of the url
@@ -102,7 +103,7 @@ function handleResponseData<T extends CanvasData>(data: undefined | null | T | T
  * @param {ICanvasCallConfig | null} [config=null] - Optional configuration object for the request, including query parameters and additional fetch options like headers.
  * @yields {T} - Yields individual items of the retrieved data from each page, one at a time.
  *
- * @throws {Error} - If the request fails or the URL contains "undefined", a warning is logged to the console.
+ * @throws {FetchJsonError} - If any page request returns a non-2xx response. If the URL contains "undefined", a warning is logged to the console.
  *
  * @example
  * ```
@@ -116,9 +117,7 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
     url: string, config: ICanvasCallConfig | null = null
 ): AsyncGenerator<T> {
 
-    if (config?.queryParams) {
-        url += '?' + searchParamsFromObject(config.queryParams);
-    }
+    url = buildUrl(url, config?.queryParams);
 
     if (url.includes('undefined')) {
         console.warn(url);
@@ -126,19 +125,14 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
 
 
     /* Returns a list of data from a GET request, going through multiple pages of data requests as necessary */
-    let response = await fetch(url, config?.fetchInit);
+    let response = await checkedFetch(url, config?.fetchInit);
     const data = handleResponseData<T>(await response.json(), url);
     if (data.length === 0) return data;
     for (const value of data) yield value;
 
-    let next_page_link = "!";
-    while (next_page_link.length !== 0 &&
-    response &&
-    response.ok) {
-        const nextLink = getNextLink(response);
-        if (!nextLink) break;
-        next_page_link = nextLink.split(";")[0].split("<")[1].split(">")[0];
-        response = await fetch(next_page_link, config?.fetchInit);
+    let nextPageLink = getNextLink(response);
+    while (nextPageLink) {
+        response = await checkedFetch(nextPageLink, config?.fetchInit);
         const responseData = handleResponseData<T>(await response.json(), url);
 
 
@@ -146,12 +140,24 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
             value.retrieved_at = new Date().toISOString();
             yield value;
         }
+        nextPageLink = getNextLink(response);
     }
 }
 
-function getNextLink(response: Response) {
-    const link = response.headers.get("Link");
-    if (!link) return null;
-    const paginationLinks = link.split(",");
-    return paginationLinks.find((link) => link.includes('next'));
+/**
+ * Returns the url of the `rel="next"` entry of a response's Link header, or null if there is none.
+ * Only the rel parameter is matched, so urls that merely contain "next" (e.g. in a search_term) are not followed.
+ */
+function getNextLink(response: Response): string | null {
+    const header = response.headers?.get("Link");
+    if (!header) return null;
+    for (const entry of header.split(/,\s*(?=<)/)) {
+        const match = entry.match(/^\s*<([^>]*)>(.*)$/);
+        if (!match) continue;
+        const [, link, params] = match;
+        const rel = params.match(/;\s*rel\s*=\s*(?:"([^"]*)"|([^\s;,]+))/i);
+        const rels = (rel?.[1] ?? rel?.[2] ?? '').toLowerCase().split(/\s+/);
+        if (rels.includes('next')) return link;
+    }
+    return null;
 }
