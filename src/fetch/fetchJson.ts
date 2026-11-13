@@ -1,4 +1,5 @@
 import { ICanvasCallConfig } from "@/canvasUtils";
+import { withOrigin } from "@/fetch/withOrigin";
 
 // Error type returned when a fetchJson request fails (non-2xx response).
 export class FetchJsonError extends Error {
@@ -27,6 +28,7 @@ export async function fetchJson<T = Record<string, any>>(
         url += '?' + new URLSearchParams(config.queryParams);
     }
     config ??= {};
+    url = withOrigin(url, config.origin);
 
 
 	const response = await fetch(url, config.fetchInit);
