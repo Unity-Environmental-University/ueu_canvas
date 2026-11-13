@@ -51,9 +51,9 @@ describe("PageKind", () => {
     it("should fetch page data using get function", async () => {
         (fetchJson as jest.Mock).mockResolvedValue(localMockPageData);
 
-        const result = await PageKind.get(pageId, courseId, mockConfig);
+        const result = await PageKind.get(courseId, pageId, mockConfig);
 
-        expect(fetchJson).toHaveBeenCalledWith(PageKind.getApiUrl(courseId, pageId), mockConfig);
+        expect(fetchJson).toHaveBeenCalledWith(`/api/v1/courses/${courseId}/pages/${pageId}`, mockConfig);
         expect(result).toBe(localMockPageData);
     });
 

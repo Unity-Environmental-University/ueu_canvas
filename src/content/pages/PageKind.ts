@@ -27,7 +27,7 @@ export const PageKind: Required<
     getName: page => page.title,
     getBody: page => page.body,
     getId: page => page.page_id,
-    get: (id, courseId, config) =>
+    get: (courseId, id, config) =>
         fetchJson(PageUrlFuncs.getApiUrl(courseId, id), config),
     getByString: (courseId, contentId, config) =>
         fetchJson<IPageData|{message: string}>(getStringApiUrl(courseId, contentId), config),
