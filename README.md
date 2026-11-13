@@ -35,6 +35,9 @@ npx jest
 ```
 
 ### Tag a release to get auto-publish to run
+
+First merge a version bump of `package.json` to `main`. The publish workflow refuses a tag that does not equal `v<package.json version>` or that points at a commit not on `main`. The publish job runs in the `npm-publish` environment, so it waits for approval when that environment has required reviewers. Push one release tag at a time. A publish run that has started blocks later ones until it finishes, including while it waits for approval, so a tag pushed meanwhile queues as pending. GitHub keeps only one pending publish run, so a further tag pushed while one is pending cancels the pending run, and that version is not published.
+
 ```bash
 git tag v1.1.1
 ```
