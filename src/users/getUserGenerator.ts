@@ -1,9 +1,13 @@
 import {getPagedDataGenerator} from "@/fetch/getPagedDataGenerator";
 import {IUserData} from "@/index";
 
+type UserEnrollmentType = 'student' | 'teacher' | 'ta' | 'observer' | 'designer';
+
 export type GetUserQueryParams = {
     search_term?: string;
-    enrollment_type?: 'student' | 'teacher' | 'ta' | 'observer' | 'designer';
+    // Canvas documents the course users endpoint as taking enrollment_type[];
+    // an array is sent in that form.
+    enrollment_type?: UserEnrollmentType | UserEnrollmentType[];
     sort?: 'username' | 'email' | 'sis_id' | 'integration_id' | 'last_login';
     order?: 'asc' | 'desc';
     include_deleted_users?: boolean;
@@ -34,6 +38,6 @@ export const getUserGenerator = (
     }
 
     return getPagedDataGenerator<IUserData[]>(url, {
-        queryParams: config,
+        queryParams: config.queryParams,
     });
 }
