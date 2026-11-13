@@ -10,6 +10,10 @@ import {
   syllabusHeaderName,
   updatedDateSyllabusHtml,
   getStartDateFromSyllabus,
+  getStartDateFromCalloutSyllabus,
+  getStartDateFromCourseMeta,
+  hasCourseMetaTable,
+  getTermNameFromSyllabus,
 } from "../changeStartDate";
 import { Temporal } from "temporal-polyfill";
 import { mockAssignmentData } from "@/content/__mocks__/mockContentData";
@@ -253,5 +257,156 @@ describe("Term Name Year Extraction", () => {
       expect(startDate.month).toBeGreaterThan(0);
       expect(startDate.day).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("course meta syllabus format", () => {
+  // The callout holds empty placeholders; the values live in the data-course-meta table.
+  const courseMetaSyllabus = (term = "DE5W08.24.26", dates = "August 24 - September 27") => `
+<table data-course-meta=""><tbody>
+<tr><td>course-title</td><td>BIOL 101: Biology</td></tr>
+<tr><td>course-term</td><td><span>${term}</span></td></tr>
+<tr><td>course-dates</td><td><span>${dates}</span></td></tr>
+<tr><td>credits</td><td>3</td></tr>
+<tr><td>course-description</td><td>A course.</td></tr>
+<tr><td>course-outcomes</td><td>One | Two</td></tr>
+<tr><td>textbook</td><td>Not required</td></tr>
+</tbody></table>
+<h1>Unity Environmental University Distance Education Course Syllabus</h1>
+<div class="cbt-callout-box"><div class="content">
+<p><strong>Course Number and Title:</strong> <span data-course-field="course-title">&nbsp;</span></p>
+<p><strong>Year/Term/Session:</strong> <span data-course-field="course-term">&nbsp;</span></p>
+<p><strong>Class Inclusive Date:</strong> <span data-course-field="course-dates">&nbsp;</span></p>
+<p><strong>Instructor Name:</strong> See <a href="https://example.edu/home">Home</a></p>
+<p><strong>Instructor Contact Information</strong>: Canvas Conversations</p>
+<p><strong>Credits:&nbsp;</strong> <span data-course-field="credits">&nbsp;</span></p>
+</div></div>`;
+
+  it("getStartDateFromSyllabus reads the date from the meta table", () => {
+    expect(getStartDateFromSyllabus(courseMetaSyllabus())).toEqual(new Temporal.PlainDate(2026, 8, 24));
+  });
+
+  it("takes the year from an older style term name", () => {
+    const html = courseMetaSyllabus("DE-24-Jan", "January 15 - February 18");
+    expect(getStartDateFromSyllabus(html)).toEqual(new Temporal.PlainDate(2024, 1, 15));
+  });
+
+  it("falls back to the original callout format when there is no meta table", () => {
+    expect(hasCourseMetaTable(baseSyllabus)).toBe(false);
+    expect(getStartDateFromSyllabus(baseSyllabus)).toEqual(getStartDateFromCalloutSyllabus(baseSyllabus));
+    expect(getStartDateFromSyllabus(baseSyllabus)).toEqual(new Temporal.PlainDate(2024, 4, 8));
+  });
+
+  it("falls back to the callout when the meta table's dates are blank", () => {
+    const blankTable = courseMetaSyllabus("", "").split("<h1>")[0];
+    const html = baseSyllabus + blankTable;
+    expect(hasCourseMetaTable(html)).toBe(true);
+    expect(getStartDateFromSyllabus(html)).toEqual(new Temporal.PlainDate(2024, 4, 8));
+  });
+
+  it("explains a blank meta table when the callout can't be read either", () => {
+    expect(() => getStartDateFromSyllabus(courseMetaSyllabus("DE5W08.24.26", ""))).toThrow(/meta table/);
+  });
+
+  it("keeps the original error for a syllabus in neither format", () => {
+    expect(() => getStartDateFromSyllabus("<p>hello world</p>")).toThrow("Can't find syllabus callout box");
+  });
+
+  it("getStartDateFromCourseMeta is null without a meta table, and loads nothing from the syllabus", () => {
+    expect(getStartDateFromCourseMeta(baseSyllabus)).toBeNull();
+    const html = courseMetaSyllabus() + '<img src="x" onerror="window.__ran = true"><script>window.__ran = true</script>';
+    getStartDateFromCourseMeta(html);
+    expect((window as any).__ran).toBeUndefined();
+  });
+
+  describe("updatedDateSyllabusHtml", () => {
+    const newStart = new Temporal.PlainDate(2026, 10, 5);
+
+    it("updates the course-term and course-dates rows of the meta table, keeping the course length", () => {
+      const result = updatedDateSyllabusHtml(courseMetaSyllabus(), newStart);
+      const table = new DOMParser().parseFromString(result.html, "text/html").querySelector("table[data-course-meta]")!;
+      const rows = Object.fromEntries(
+        Array.from(table.querySelectorAll("tr")).map((r) => [r.cells[0].textContent, r.cells[1].textContent])
+      );
+      expect(rows["course-term"]).toBe("DE5W10.05.26");
+      expect(rows["course-dates"]).toBe("October 5 - November 8"); // Aug 24 - Sep 27 is 34 days
+      expect(result.changedText).toEqual([
+        "DE5W08.24.26 -> DE5W10.05.26",
+        "August 24 - September 27 -> October 5 - November 8",
+      ]);
+    });
+
+    it("changes nothing else: other rows, the callout placeholders, links, and blank paragraphs", () => {
+      const html = '<link rel="stylesheet" href="https://example.edu/a.css">' + courseMetaSyllabus() + "<p>&nbsp;</p>";
+      const result = updatedDateSyllabusHtml(html, newStart).html;
+      expect(result).toContain('<link rel="stylesheet" href="https://example.edu/a.css">');
+      expect(result).toContain("<td>BIOL 101: Biology</td>");
+      expect(result).toContain("<td>One | Two</td>");
+      expect(result).toContain('<span data-course-field="course-dates">&nbsp;</span>');
+      expect(result).toContain('<a href="https://example.edu/home">Home</a>');
+      expect(result).toContain("<p>&nbsp;</p>"); // the original path strips these; the meta path leaves the page alone
+    });
+
+    it("reads back as the new start date", () => {
+      const updated = updatedDateSyllabusHtml(courseMetaSyllabus(), newStart).html;
+      expect(getStartDateFromSyllabus(updated)).toEqual(newStart);
+    });
+
+    it("names the new term for grad and undergrad courses from an older style term name", () => {
+      const old = courseMetaSyllabus("DE-24-Jan", "January 15 - February 18");
+      expect(updatedDateSyllabusHtml(old, newStart, false).changedText[0]).toBe("DE-24-Jan -> DE5W10.05.26");
+      expect(updatedDateSyllabusHtml(old, newStart, true).changedText[0]).toBe("DE-24-Jan -> DE8W10.05.26");
+    });
+
+    it("recognizes a term name with a stray dot (DE5W.07.13.26)", () => {
+      const html = courseMetaSyllabus("DE5W.07.13.26", "July 13 - August 16");
+      expect(updatedDateSyllabusHtml(html, newStart).changedText[0]).toBe("DE5W.07.13.26 -> DE5W10.05.26");
+    });
+
+    it("falls back to the original callout when the meta table has no usable dates", () => {
+      const html = baseSyllabus + courseMetaSyllabus("", "").split("<h1>")[0];
+      const result = updatedDateSyllabusHtml(html, newStart);
+      expect(result.html).toContain("DE5W10.05.26");
+    });
+
+    it("throws the meta table's error when neither format can be updated", () => {
+      expect(() => updatedDateSyllabusHtml(courseMetaSyllabus("DE5W08.24.26", ""), newStart)).toThrow(/meta table/);
+      expect(() => updatedDateSyllabusHtml(courseMetaSyllabus("Spring", "August 24 - September 27"), newStart)).toThrow(
+        "Can't Recognize Term Name Spring"
+      );
+    });
+  });
+});
+
+describe("getTermNameFromSyllabus", () => {
+  const callout = (termPara: string) => `<div class="cbt-callout-box"><div class="content">
+<p><strong>Course Number and Title:</strong> BIOL 101</p>${termPara}
+<p><strong>Class Inclusive Dates:</strong><span> August 24 - September 27</span></p></div></div>`;
+  const meta = (term: string) =>
+    `<table data-course-meta=""><tbody><tr><td>course-term</td><td><span>${term}</span></td></tr></tbody></table>`;
+  const placeholderTerm = '<p><strong>Year/Term/Session:</strong> <span data-course-field="course-term">&nbsp;</span></p>';
+
+  it("reads the term from the course meta table", () => {
+    expect(getTermNameFromSyllabus(meta("DE5W08.24.26") + callout(placeholderTerm))).toBe("DE5W08.24.26");
+  });
+
+  it("reads the term from the original callout format", () => {
+    const html = callout("<p><strong>Year/Term/Session:</strong><span> DE5W06.04.20</span></p>");
+    expect(getTermNameFromSyllabus(html)).toBe("DE5W06.04.20");
+    expect(getTermNameFromSyllabus(baseSyllabus)).toMatch(/^DE/);
+  });
+
+  it("falls back to the callout when the meta table's term is blank", () => {
+    const html = meta("") + callout("<p><strong>Year/Term/Session:</strong><span> DE5W06.04.20</span></p>");
+    expect(getTermNameFromSyllabus(html)).toBe("DE5W06.04.20");
+  });
+
+  it("gives an empty term (not an error) for an unfilled placeholder with no meta table", () => {
+    expect(getTermNameFromSyllabus(callout(placeholderTerm))).toBe("");
+  });
+
+  it("is null when the syllabus has neither", () => {
+    expect(getTermNameFromSyllabus("<p>hello</p>")).toBeNull();
+    expect(getTermNameFromSyllabus('<div class="cbt-callout-box"><p><strong>Only one</strong></p></div>')).toBeNull();
   });
 });
