@@ -1,7 +1,7 @@
 import { deepObjectMerge, ICanvasCallConfig, queryStringify, range, renderAsyncGen } from "../canvasUtils";
 import { describe, expect } from "@jest/globals";
 import { CanvasData } from "../canvasDataDefs";
-import { getPagedDataGenerator } from "@/fetch/getPagedDataGenerator";
+import { getPagedData, getPagedDataGenerator } from "@/fetch/getPagedDataGenerator";
 import { fetchGetConfig } from "@/fetch/utils";
 import { fetchJson, FetchJsonError } from "@/fetch/fetchJson";
 import { canvasDataFetchGenFunc } from "@/fetch/canvasDataFetchGenFunc";
@@ -41,6 +41,7 @@ describe("canvasDataFetchGenFunc", () => {
       expect(fetchMock).toHaveBeenCalledTimes(i);
       const expectedFetchResult = [goobers[i]];
       fetchMock.mockResolvedValue({
+        ok: true,
         json: async () => expectedFetchResult,
       });
       const getGoobers = fetchGoobersGen({ courseId: i, gooberId: i * 2 }, config);
@@ -315,5 +316,160 @@ describe("getPagedDataGenerator", () => {
 
     expect(result1.value).toEqual({ id: 1 });
     expect(result2.done).toBe(true);
+  });
+});
+
+describe("getPagedDataGenerator error handling and pagination", () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
+  const okPage = (data: unknown, link?: string) =>
+    ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: jest.fn().mockResolvedValue(data),
+      headers: new Headers(link ? { Link: link } : {}),
+    }) as any;
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("rejects with FetchJsonError on a 401 first page instead of yielding the error body", async () => {
+    const errorBody = { errors: [{ message: "user authorization required" }], status: "unauthenticated" };
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      json: async () => errorBody,
+      headers: new Headers({}),
+    } as any);
+
+    const generator = getPagedDataGenerator<CanvasData>("http://example.com/api/v1/accounts");
+
+    await expect(generator.next()).rejects.toMatchObject({
+      name: "FetchJsonError",
+      status: 401,
+      statusText: "Unauthorized",
+      body: errorBody,
+    });
+  });
+
+  it("rejects getPagedData with FetchJsonError on a 403", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      statusText: "Forbidden",
+      json: async () => ({ errors: [{ message: "unauthorized" }] }),
+      headers: new Headers({}),
+    } as any);
+
+    await expect(getPagedData("http://example.com/api/v1/accounts")).rejects.toBeInstanceOf(FetchJsonError);
+  });
+
+  it("rejects with FetchJsonError when page 2 returns a 500 with a non-JSON body", async () => {
+    fetchMock.mockResolvedValueOnce(okPage([{ id: 1 }], '<http://example.com/api/data?page=2>; rel="next"'))
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        json: async () => {
+          throw new SyntaxError("Unexpected token < in JSON");
+        },
+        headers: new Headers({}),
+      } as any);
+
+    const generator = getPagedDataGenerator<CanvasData>("http://example.com/api/data");
+    expect((await generator.next()).value).toEqual({ id: 1 });
+
+    const error = await generator.next().catch((e) => e);
+    expect(error).toBeInstanceOf(FetchJsonError);
+    expect(error).toMatchObject({ status: 500, body: undefined });
+    expect(fetchMock).toHaveBeenLastCalledWith("http://example.com/api/data?page=2", undefined);
+  });
+
+  it("does not follow a rel=\"current\" link whose URL contains 'next'", async () => {
+    const link =
+      '<http://example.com/api/v1/courses/1/pages?search_term=next&page=1>; rel="current",' +
+      '<http://example.com/api/v1/courses/1/pages?search_term=next&page=1>; rel="first",' +
+      '<http://example.com/api/v1/courses/1/pages?search_term=next&page=1>; rel="last"';
+    fetchMock.mockResolvedValue(okPage([{ id: 1 }], link));
+
+    const results = await getPagedData("http://example.com/api/v1/courses/1/pages", {
+      queryParams: { search_term: "next" },
+    });
+
+    expect(results).toEqual([{ id: 1 }]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [
+      "current first",
+      '<http://example.com/api/data?page=1>; rel="current",<http://example.com/api/data?page=2>; rel="next",' +
+        '<http://example.com/api/data?page=1>; rel="first",<http://example.com/api/data?page=3>; rel="last"',
+    ],
+    [
+      "next last",
+      '<http://example.com/api/data?page=1>; rel="first", <http://example.com/api/data?page=3>; rel="last", ' +
+        '<http://example.com/api/data?page=2>; rel="next"',
+    ],
+    ["unquoted rel", "<http://example.com/api/data?page=2>; rel=next"],
+  ])("follows the rel=\"next\" link regardless of entry order (%s)", async (_label, link) => {
+    fetchMock.mockResolvedValueOnce(okPage([{ id: 1 }], link)).mockResolvedValueOnce(okPage([{ id: 2 }]));
+
+    const results = await getPagedData("http://example.com/api/data");
+
+    expect(results.map((r) => r.id)).toEqual([1, 2]);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "http://example.com/api/data?page=2", undefined);
+  });
+
+  it("stops when the Link header has no next entry", async () => {
+    fetchMock.mockResolvedValueOnce(
+      okPage([{ id: 1 }], '<http://example.com/api/data?page=1>; rel="current",<http://example.com/api/data?page=1>; rel="last"')
+    );
+
+    const results = await getPagedData("http://example.com/api/data");
+
+    expect(results).toEqual([{ id: 1 }]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("joins queryParams with & when the URL already has a query string", async () => {
+    fetchMock.mockResolvedValueOnce(okPage([{ id: 1 }]));
+
+    await getPagedData("http://example.com/api/data?per_page=50", { queryParams: { include: ["a", "b"] } });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://example.com/api/data?per_page=50&include%5B%5D=a&include%5B%5D=b",
+      undefined
+    );
+  });
+});
+
+describe("fetchJson query encoding", () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
+  });
+
+  it("encodes a multi-element include the same way as the pager", async () => {
+    await fetchJson("/api/v1/courses/1/rubrics/2", { queryParams: { include: ["assessments", "associations"] } });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/courses/1/rubrics/2?include%5B%5D=assessments&include%5B%5D=associations",
+      undefined
+    );
+  });
+
+  it("joins queryParams with & when the URL already has a query string", async () => {
+    await fetchJson("/api/v1/courses/1?per_page=10", { queryParams: { search_term: "x" } });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/courses/1?per_page=10&search_term=x", undefined);
   });
 });
