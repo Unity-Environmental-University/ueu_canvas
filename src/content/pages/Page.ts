@@ -12,8 +12,8 @@ export class Page extends BaseContentItem {
     static contentUrlTemplate = "/api/v1/courses/{course_id}/pages/{content_id}";
     static allContentUrlTemplate = "/api/v1/courses/{course_id}/pages";
 
-    constructor(canvasData: IPageData, courseId: number) {
-        super(canvasData, courseId);
+    constructor(canvasData: IPageData, courseId: number, origin?: string) {
+        super(canvasData, courseId, origin);
     }
 
     get body(): string {

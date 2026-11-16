@@ -82,7 +82,9 @@ export interface IQueryParams extends Record<string, any> {
 
 export interface ICanvasCallConfig<QueryParamsType extends IQueryParams = IQueryParams> {
     fetchInit?: RequestInit,
-    queryParams?: QueryParamsType
+    queryParams?: QueryParamsType,
+    /** Canvas instance origin (e.g. https://unity.instructure.com) that relative urls are sent to. Defaults to the current browser origin. */
+    origin?: string,
 }
 
 const type_lut: Record<ModuleItemType, RestrictModuleItemType | null> = {

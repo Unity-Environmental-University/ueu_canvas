@@ -1,5 +1,6 @@
 import {CanvasData} from "@/canvasDataDefs";
 import {ICanvasCallConfig, searchParamsFromObject} from "@/canvasUtils";
+import {withOrigin} from "@/fetch/withOrigin";
 
 /**
  * @param url The entire path of the url
@@ -116,6 +117,7 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
     url: string, config: ICanvasCallConfig | null = null
 ): AsyncGenerator<T> {
 
+    url = withOrigin(url, config?.origin);
     if (config?.queryParams) {
         url += '?' + searchParamsFromObject(config.queryParams);
     }

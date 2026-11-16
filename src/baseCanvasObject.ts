@@ -29,8 +29,18 @@ export class BaseCanvasObject<CanvasDataType extends CanvasData> implements ICan
     protected get accountId(): null | number {
         return this._accountId;
     }
-    constructor(data: CanvasDataType) {
+    /** Canvas instance origin this object was loaded from; its own follow-up requests go there. */
+    readonly origin?: string;
+
+    constructor(data: CanvasDataType, origin?: string) {
         this.canvasData = data || {}; // A dict holding the decoded json representation of the object in Canvas
+        this.origin = origin;
+    }
+
+    /** The given config, targeting this object's origin unless the config names its own. */
+    protected withMyOrigin<C extends ICanvasCallConfig>(config?: C | null): C {
+        const origin = config?.origin ?? this.origin;
+        return (origin ? {...config, origin} : config ?? {}) as C;
     }
 
     getClass(): typeof BaseContentItem {
@@ -131,7 +141,7 @@ export class BaseCanvasObject<CanvasDataType extends CanvasData> implements ICan
             }
         }, config);
 
-        let results = await fetchJson(this.contentUrlPath, config) as Partial<CanvasDataType> | Partial<CanvasDataType>[];
+        let results = await fetchJson(this.contentUrlPath, this.withMyOrigin(config)) as Partial<CanvasDataType> | Partial<CanvasDataType>[];
         if(Array.isArray(results)) results = results[0];
         this.canvasData = {...this.canvasData, ...results};
         return this.canvasData;
