@@ -95,7 +95,8 @@ const type_lut: Record<ModuleItemType, RestrictModuleItemType | null> = {
     File: 'attachment',
     Page: 'wiki_page',
     ExternalUrl: null, //Not passable to restrict
-    Subheader: null, //Not passable to restrict
+    SubHeader: null, //Not passable to restrict
+    Subheader: null, //Deprecated misspelling of SubHeader
 
 }
 

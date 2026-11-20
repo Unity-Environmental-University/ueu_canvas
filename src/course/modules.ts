@@ -20,16 +20,31 @@ export interface GenerateModulesOptions {
 }
 
 
+// Fields Canvas accepts as module_item[...] on PUT /courses/:course_id/modules/:module_id/items/:id.
+// module_id is left out on purpose: sending it moves the item to another module.
+const writableModuleItemFields = ['title', 'position', 'indent', 'external_url', 'new_tab', 'published'] as const;
+
 export async function saveModuleItem(
     courseId:number,
     moduleId:number,
     moduleItemId: number,
     moduleItem: Partial<IModuleItemData>
 ) {
-    return await fetchJson(`/api/v1/courses/${courseId}/modules/${moduleId}/modules/items/${moduleItemId}`, {
+    const module_item: Record<string, any> = {};
+    for (const field of writableModuleItemFields) {
+        if (moduleItem[field] !== undefined && moduleItem[field] !== null) module_item[field] = moduleItem[field];
+    }
+    const requirement = moduleItem.completion_requirement;
+    if (requirement) {
+        module_item.completion_requirement = requirement.min_score === undefined || requirement.min_score === null
+            ? { type: requirement.type }
+            : { type: requirement.type, min_score: requirement.min_score };
+    }
+
+    return await fetchJson(`/api/v1/courses/${courseId}/modules/${moduleId}/items/${moduleItemId}`, {
         fetchInit: {
             method: "PUT",
-            body: formDataify({ moduleItem: moduleItem }),
+            body: formDataify({ module_item }),
         }
     })
 }

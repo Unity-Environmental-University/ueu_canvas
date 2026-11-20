@@ -48,6 +48,8 @@ export type ModuleItemType =
     | "ExternalTool"
     | "ExternalUrl"
     | "Page"
+    | "SubHeader"
+    /** @deprecated Canvas sends "SubHeader". Kept so existing callers still type-check. */
     | "Subheader"
 export type RestrictModuleItemType =
     'assignment'
