@@ -12,8 +12,8 @@ export class Assignment extends BaseContentItem {
     static contentUrlTemplate = "/api/v1/courses/{course_id}/assignments/{content_id}";
     static allContentUrlTemplate = "/api/v1/courses/{course_id}/assignments";
 
-    constructor(assignmentData: IAssignmentData, courseId: number) {
-        super(assignmentData, courseId);
+    constructor(assignmentData: IAssignmentData, courseId: number, origin?: string) {
+        super(assignmentData, courseId, origin);
     }
 
     async setDueAt(dueAt: Date, config?: ICanvasCallConfig) {

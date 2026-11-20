@@ -1,5 +1,6 @@
 import { ICanvasCallConfig } from "@/canvasUtils";
 import { buildUrl, checkedFetch, FetchJsonError } from "@/fetch/checkedFetch";
+import { withOrigin } from "@/fetch/withOrigin";
 
 export { FetchJsonError };
 
@@ -10,6 +11,7 @@ export async function fetchJson<T = Record<string, any>>(
     if (match < 0) throw new Error("url does not start with / or http")
     url = buildUrl(url, config?.queryParams);
     config ??= {};
+    url = withOrigin(url, config.origin);
 
 
 	const response = await checkedFetch(url, config.fetchInit);
