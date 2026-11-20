@@ -1,6 +1,7 @@
 import {CanvasData} from "@/canvasDataDefs";
 import {ICanvasCallConfig} from "@/canvasUtils";
 import {buildUrl, checkedFetch} from "@/fetch/checkedFetch";
+import {withOrigin} from "@/fetch/withOrigin";
 
 /**
  * @param url The entire path of the url
@@ -117,7 +118,7 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
     url: string, config: ICanvasCallConfig | null = null
 ): AsyncGenerator<T> {
 
-    url = buildUrl(url, config?.queryParams);
+    url = withOrigin(buildUrl(url, config?.queryParams), config?.origin);
 
     if (url.includes('undefined')) {
         console.warn(url);
