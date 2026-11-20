@@ -72,10 +72,6 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
 		url = buildUrl(url, config.queryParams);
 	}
 
-	if (url.includes("undefined")) {
-		console.warn(url);
-	}
-
 	// Initial request
 	let response = await checkedFetch(url, config?.fetchInit);
 	const data = handleResponseData<T>(await response.json(), url);
@@ -102,7 +98,7 @@ function getNextLink(response: Response): string | null {
 	const header = response.headers?.get("Link");
 	if (!header) return null;
 	for (const entry of header.split(/,\s*(?=<)/)) {
-		const match = entry.match(/^\s*<([^>]*)>(.*)$/);
+		const match = entry.match(/^[\s]*<([^>]*)>(.*)$/);
 		if (!match) continue;
 		const [, link, params] = match;
 		const rel = params.match(/;\s*rel\s*=\s*(?:"([^"]*)"|([^\s;,]+))/i);
