@@ -72,6 +72,11 @@ export async function* getPagedDataGenerator<T extends CanvasData = CanvasData>(
 		url = buildUrl(url, config.queryParams);
 	}
 
+	// An "undefined" in the url means a caller interpolated a missing id (e.g. /accounts/undefined/...)
+	if (url.includes("undefined")) {
+		console.warn(url);
+	}
+
 	// Initial request
 	let response = await checkedFetch(url, config?.fetchInit);
 	const data = handleResponseData<T>(await response.json(), url);
